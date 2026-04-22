@@ -1,0 +1,45 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+.dockerignore
+
+# Logs
+*.log
+logs/
+
+# Build output
+dist/
+build/
+
+# Node modules (if used)
+node_modules/
+
+# Python cache (if used)
+__pycache__/
+*.pyc
+.Python
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# IDE specific
+.vscode/settings.json
+.vscode/launch.json
+
+# OS
+Thumbs.db
+.AppleDouble
+.LSOverride

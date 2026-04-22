@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  thorium-vnc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: thorium-vnc-server
+    ports:
+      # VNC remote desktop protocol
+      - "5900:5900"
+      # noVNC web interface (http)
+      - "6080:6080"
+      # Optional: Chromium remote debugging protocol
+      - "9222:9222"
+    environment:
+      # VNC settings
+      - DISPLAY=:1
+      - VNC_PASSWORD=vnc
+      # Disable GPU acceleration for better stability in containers
+      - CHROMIUM_FLAGS=--no-sandbox --disable-gpu --disable-dev-shm-usage
+      # Enable internet connectivity
+      - http_proxy=
+      - https_proxy=
+    volumes:
+      # Persist browser profile/cache
+      - thorium-data:/root/.config/chromium
+      # Persist VNC config
+      - vnc-config:/root/.vnc
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6080/vnc.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - thorium-network
+    # Enable systemd support if running on systemd system
+    # Uncomment to use system bus for dbus
+    # privileged: true
+    # devices:
+    #   - /dev/dri:/dev/dri  # GPU access if available
+
+networks:
+  thorium-network:
+    driver: bridge
+
+volumes:
+  thorium-data:
+    driver: local
+  vnc-config:
+    driver: local
