@@ -17,11 +17,16 @@ services:
       # VNC settings
       - DISPLAY=:1
       - VNC_PASSWORD=vnc
-      # Disable GPU acceleration for better stability in containers
-      - CHROMIUM_FLAGS=--no-sandbox --disable-gpu --disable-dev-shm-usage
-      # Enable internet connectivity
+      # Chromium/Thorium settings for container stability
+      - CHROMIUM_FLAGS=--no-sandbox --disable-gpu --disable-dev-shm-usage --no-first-run --no-default-browser-check --disable-sync
+      # Network settings for offline support
       - http_proxy=
       - https_proxy=
+      - NO_PROXY=localhost,127.0.0.1
+      # Chromium offline/cache settings
+      - GOOGLE_API_KEY=disabled
+      - GOOGLE_DEFAULT_CLIENT_ID=disabled
+      - GOOGLE_DEFAULT_CLIENT_SECRET=disabled
     volumes:
       # Persist browser profile/cache
       - thorium-data:/root/.config/chromium

@@ -8,14 +8,14 @@ ENV TZ=UTC
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Core X11 and VNC components
     xvfb \
-    tigervnc-server \
+    tightvncserver \
     novnc \
     websockify \
     # Window manager
     openbox \
     # Required for audio
     pulseaudio \
-    alsa-lib \
+    libasound2t64 \
     alsa-utils \
     # Browser and its dependencies
     chromium-browser \
@@ -28,7 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # X11 utilities
     x11-utils \
     x11-xserver-utils \
-    xrandr \
+    xserver-xorg-core \
     # Network and system tools
     dbus \
     dbus-x11 \
