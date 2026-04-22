@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Core X11 and VNC components
     xvfb \
     tightvncserver \
+    x11vnc \
     novnc \
     websockify \
     # Window manager
@@ -56,6 +57,23 @@ COPY openbox_rc.xml /root/.config/openbox/rc.xml
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+# Create proper noVNC index file with VNC connection defaults
+RUN mkdir -p /root/.novnc && cat > /usr/share/novnc/index.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Thorium VNC</title>
+</head>
+<body style="margin: 0; padding: 0; overflow: hidden;">
+    <script>
+        // Redirect to vnc.html with proper parameters
+        window.location.href = '/vnc.html?path=?token=1234&autoconnect=true&password=vnc';
+    </script>
+</body>
+</html>
+EOF
 
 # Expose VNC port
 EXPOSE 5900

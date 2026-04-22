@@ -33,19 +33,36 @@ OPENBOX_PID=$!
 # Wait for OpenBox
 sleep 2
 
-# Start VNC server
+# Start VNC server using x11vnc (attaches to existing X display)
 echo "🖥️ Starting VNC Server on port 5900..."
-vncserver :1 -geometry 1280x960 -depth 24 -rfbport 5900 \
-    -authfile /root/.vnc/passwd \
-    -SecurityTypes VncAuth,None 2>&1 || true
-VNC_PID=$(pgrep -f "Xvnc :1" || echo "")
+x11vnc -display :1 \
+    -forever \
+    -shared \
+    -nopw \
+    -rfbport 5900 \
+    -geometry 1280x960 \
+    -rfbauth /root/.vnc/passwd \
+    -desktop "Thorium Browser" \
+    2>&1 &
+VNC_X11VNC_PID=$!
 
-# Wait for VNC to stabilize
-sleep 2
+# Wait for x11vnc to start and listen on port 5900
+echo "⏳ Waiting for VNC server to be ready..."
+for i in {1..30}; do
+    if ps aux | grep -q "[x]11vnc -display"; then
+        echo "✓ VNC server (x11vnc) detected"
+        sleep 2
+        break
+    fi
+    echo "   Attempt $i/30..."
+    sleep 1
+done
+
+sleep 1
 
 # Start noVNC web interface for browser access
 echo "🌐 Starting noVNC Web Interface on port 6080..."
-websockify --web=/usr/share/novnc 6080 localhost:5900 2>/dev/null &
+websockify --web=/usr/share/novnc --verbose 6080 localhost:5900 &
 NOVNC_PID=$!
 
 # Apply display settings
