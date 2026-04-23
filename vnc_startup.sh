@@ -1,28 +1,59 @@
-#!/bin/sh
-# VNC Server startup script
+#!/bin/bash
+# VNC Server startup script - xstartup replacement
+# This script is called by x11vnc/Xvfb to start the user session
 
-# Set up VNC server configuration
-echo "Configuring VNC Server..."
+echo "🚀 VNC Session Starting..."
 
-# Create VNC xstartup script if it doesn't exist
-cat > /root/.vnc/xstartup << 'EOF'
-#!/bin/sh
-# VNC xstartup script
+# Set up core environment
+export DISPLAY=:1
+export USER=root
+export HOME=/root
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Start essential services
-dbus-launch --exit-with-session &
+echo "📡 Starting session bus..."
+eval $(dbus-launch --sh-syntax)
+export DBUS_SESSION_BUS_ADDRESS
 
 # Set up keyboard and mouse
-setxkbmap us
-xsetroot -solid grey
+echo "⌨️  Configuring keyboard..."
+setxkbmap -layout us -model pc104
 
-# Start window manager
-exec openbox &
+# Set a nice background
+echo "🎨 Setting background..."
+xsetroot -solid "#2c3e50"
 
-# Wait indefinitely
-while true; do sleep 3600; done
-EOF
+# Start window manager if not already running
+if ! pgrep -x openbox > /dev/null; then
+    echo "🪟 Starting OpenBox..."
+    exec openbox --config-file /root/.config/openbox/rc.xml &
+fi
 
-chmod +x /root/.vnc/xstartup
+# Start Chromium/Thorium browser
+echo "🌍 Starting Thorium Browser..."
+sleep 2
 
-exit 0
+CHROMIUM_FLAGS="--new-window \
+    --no-sandbox \
+    --disable-gpu \
+    --disable-dev-shm-usage \
+    --remote-debugging-port=9222 \
+    --no-first-run \
+    --no-default-browser-check \
+    --disable-sync \
+    --disable-default-apps \
+    --disable-component-extensions-with-background-pages \
+    --disable-pings \
+    --disable-extensions \
+    --disable-plugins \
+    about:blank"
+
+# Launch browser
+chromium-browser $CHROMIUM_FLAGS 2>&1 | tee -a /tmp/chromium.log &
+BROWSER_PID=$!
+
+echo "✅ VNC session ready"
+echo "   Browser PID: $BROWSER_PID"
+
+# Keep the session alive
+while sleep 3600; do :; done

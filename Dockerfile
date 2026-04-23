@@ -26,6 +26,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
     git \
+    netstat-nat \
+    net-tools \
     # X11 utilities
     x11-utils \
     x11-xserver-utils \
@@ -46,10 +48,39 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create VNC password file (default password: vnc)
 RUN echo "vnc" | vncpasswd -f > /root/.vnc/passwd && chmod 600 /root/.vnc/passwd
 
-# Create VNC startup script
-RUN mkdir -p /etc/vnc
+# Create xstartup script for VNC sessions
+RUN cat > /root/.vnc/xstartup << 'XSTARTUP_EOF'
+#!/bin/bash
+# VNC xstartup script
+
+export DISPLAY=:1
+export USER=root
+export HOME=/root
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Start essential services
+eval $(dbus-launch --sh-syntax)
+
+# Set up keyboard and mouse
+setxkbmap -layout us -model pc104
+xsetroot -solid "#2c3e50"
+
+# Start window manager
+openbox --config-file /root/.config/openbox/rc.xml &
+sleep 3
+
+# Start Chromium browser
+CHROMIUM_FLAGS="--new-window --no-sandbox --disable-gpu --disable-dev-shm-usage --remote-debugging-port=9222 --no-first-run --no-default-browser-check --disable-sync --disable-extensions --disable-plugins about:blank"
+chromium-browser $CHROMIUM_FLAGS 2>&1 | tee -a /tmp/chromium.log &
+
+# Keep running
+while sleep 3600; do :; done
+XSTARTUP_EOF
+RUN chmod +x /root/.vnc/xstartup
+
+# Copy VNC startup script  
 COPY vnc_startup.sh /etc/vnc/
-RUN chmod +x /etc/vnc/vnc_startup.sh
+RUN mkdir -p /etc/vnc && chmod +x /etc/vnc/vnc_startup.sh
 
 # Copy OpenBox configuration
 COPY openbox_rc.xml /root/.config/openbox/rc.xml
@@ -81,9 +112,12 @@ EXPOSE 5900
 # Expose noVNC web interface port
 EXPOSE 6080
 
+# Expose Chromium remote debugging port
+EXPOSE 9222
+
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:6080/vnc.html || exit 1
 
-# Start VNC server
+# Start VNC server with entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
