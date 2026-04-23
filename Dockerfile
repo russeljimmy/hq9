@@ -49,34 +49,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN echo "vnc" | vncpasswd -f > /root/.vnc/passwd && chmod 600 /root/.vnc/passwd
 
 # Create xstartup script for VNC sessions
-RUN cat > /root/.vnc/xstartup << 'XSTARTUP_EOF'
-#!/bin/bash
-# VNC xstartup script
-
-export DISPLAY=:1
-export USER=root
-export HOME=/root
-export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-
-# Start essential services
-eval $(dbus-launch --sh-syntax)
-
-# Set up keyboard and mouse
-setxkbmap -layout us -model pc104
-xsetroot -solid "#2c3e50"
-
-# Start window manager
-openbox --config-file /root/.config/openbox/rc.xml &
-sleep 3
-
-# Start Chromium browser
-CHROMIUM_FLAGS="--new-window --no-sandbox --disable-gpu --disable-dev-shm-usage --remote-debugging-port=9222 --no-first-run --no-default-browser-check --disable-sync --disable-extensions --disable-plugins about:blank"
-chromium-browser $CHROMIUM_FLAGS 2>&1 | tee -a /tmp/chromium.log &
-
-# Keep running
-while sleep 3600; do :; done
-XSTARTUP_EOF
-RUN chmod +x /root/.vnc/xstartup
+RUN printf '#!/bin/bash\n# VNC xstartup script\n\nexport DISPLAY=:1\nexport USER=root\nexport HOME=/root\nexport PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n\neval $(dbus-launch --sh-syntax)\n\nsetxkbmap -layout us -model pc104\nxsetroot -solid "#2c3e50"\n\nopenbox --config-file /root/.config/openbox/rc.xml &\nsleep 3\n\nCHROMIUM_FLAGS="--new-window --no-sandbox --disable-gpu --disable-dev-shm-usage --remote-debugging-port=9222 --no-first-run --no-default-browser-check --disable-sync --disable-extensions --disable-plugins about:blank"\nchromium-browser $CHROMIUM_FLAGS 2>&1 | tee -a /tmp/chromium.log &\n\nwhile sleep 3600; do :; done\n' > /root/.vnc/xstartup && chmod +x /root/.vnc/xstartup
 
 # Copy VNC startup script  
 COPY vnc_startup.sh /etc/vnc/
@@ -85,26 +58,19 @@ RUN mkdir -p /etc/vnc && chmod +x /etc/vnc/vnc_startup.sh
 # Copy OpenBox configuration
 COPY openbox_rc.xml /root/.config/openbox/rc.xml
 
+# Copy OpenBox menu configuration
+COPY openbox_menu.xml /root/.config/openbox/menu.xml
+
+# Copy Thorium desktop file
+COPY thorium.desktop /root/.local/share/applications/thorium.desktop
+RUN mkdir -p /root/.local/share/applications && chmod 644 /root/.local/share/applications/thorium.desktop
+
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Create proper noVNC index file with VNC connection defaults
-RUN mkdir -p /root/.novnc && cat > /usr/share/novnc/index.html << 'EOF'
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Thorium VNC</title>
-</head>
-<body style="margin: 0; padding: 0; overflow: hidden;">
-    <script>
-        // Redirect to vnc.html with proper parameters
-        window.location.href = '/vnc.html?path=?token=1234&autoconnect=true&password=vnc';
-    </script>
-</body>
-</html>
-EOF
+RUN printf '<!DOCTYPE html>\n<html>\n<head>\n    <meta charset="UTF-8">\n    <title>Thorium VNC</title>\n</head>\n<body style="margin: 0; padding: 0; overflow: hidden;">\n    <script>\n        window.location.href = "/vnc.html?path=?token=1234&autoconnect=true&password=vnc";\n    </script>\n</body>\n</html>\n' > /usr/share/novnc/index.html
 
 # Expose VNC port
 EXPOSE 5900

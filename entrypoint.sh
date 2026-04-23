@@ -108,8 +108,16 @@ sleep 2
 echo "⏳ Final initialization checks..."
 sleep 4
 
-# Launch Thorium/Chromium Browser with stability flags
+# Launch Thorium/Chromium Browser as a windowed application
 echo "🌍 Starting Thorium Browser..."
+
+# Use a wrapper script to ensure browser runs with proper X11 decorations
+cat > /tmp/launch_browser.sh << 'BROWSER_EOF'
+#!/bin/bash
+export DISPLAY=:1
+export HOME=/root
+sleep 1
+
 CHROMIUM_FLAGS="--new-window \
     --no-sandbox \
     --disable-gpu \
@@ -133,13 +141,19 @@ CHROMIUM_FLAGS="--new-window \
     --enable-features=NetworkService,NetworkServiceInProcess \
     about:blank"
 
-# Start Chromium in the background with proper error handling and logging
-(
-    sleep 2  # Extra buffer to ensure window manager is ready
-    exec env DISPLAY=$DISPLAY chromium-browser $CHROMIUM_FLAGS 2>&1 | tee -a /tmp/chromium.log
-) > /dev/null 2>&1 &
+# Execute browser with proper window management
+exec chromium-browser $CHROMIUM_FLAGS 2>&1 | tee -a /tmp/chromium.log
+BROWSER_EOF
+
+chmod +x /tmp/launch_browser.sh
+
+# Start browser launcher in background
+(/tmp/launch_browser.sh &) > /dev/null 2>&1
 BROWSER_PID=$!
 echo "   Chromium Browser PID: $BROWSER_PID"
+
+# Give browser time to initialize
+sleep 3
 
 # Keep running
 echo ""
@@ -149,6 +163,7 @@ echo "   - Server: localhost:5900"
 echo "   - Password: vnc"
 echo "🌐 Web Browser: http://localhost:6080/vnc.html"
 echo "🔧 Chromium Remote Debug: http://localhost:9222"
+echo "💡 Desktop Application: Right-click on desktop for menu or click Thorium icon"
 echo ""
 echo "🔍 Process Status:"
 ps aux | grep -E "[X]vfb|[o]penbox|[x]11vnc|[w]ebsockify|[c]hromium" || true

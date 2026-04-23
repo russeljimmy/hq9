@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Thorium Browser
+Comment=Fast and secure web browser
+Icon=chromium-browser
+Exec=chromium-browser --no-sandbox --disable-gpu --disable-dev-shm-usage --remote-debugging-port=9222 --new-window about:blank
+Categories=Utility;WebBrowser;
+Terminal=false
+StartupWMClass=Chromium-browser
